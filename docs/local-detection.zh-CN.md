@@ -23,6 +23,24 @@
 
 `--run-first` 只会使用环境变量里检测到的 OpenAI-compatible 目标。它不会拿配置文件里解析出的密钥去自动联网。
 
+## 显式真实 API 测试模式
+
+默认情况下，`detect-local` 和 `quickstart` 只发现本机配置，不会拿配置文件里的 Key 自动请求真实 API。
+
+如果机主明确授权使用当前本机配置里的 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针，可以使用：
+
+    relayprobe detect-local --run-detected-live --out artifacts/local-detect-live
+
+或：
+
+    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
+
+PowerShell 一键脚本也支持：
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
+
+启用后，relayprobe 会读取检测到的本机 Key，并发送合成测试请求。这可能产生 API 调用记录或费用。Key 只在本进程内存中用于 Authorization，不会明文打印、不会写入报告、不会上传。
+
 关闭 localhost 探测，只做配置发现：
 
     $env:PYTHONPATH="src"

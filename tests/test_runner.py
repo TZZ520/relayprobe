@@ -7,7 +7,7 @@ from pathlib import Path
 
 from relayprobe.runner import Runner, write_report
 from relayprobe.schemas import Target
-from relayprobe.transport import MockTransport
+from relayprobe.transport import MockTransport, join_base_and_endpoint
 
 
 class RunnerTests(unittest.TestCase):
@@ -28,7 +28,16 @@ class RunnerTests(unittest.TestCase):
         cases = {result["case_id"]: result for result in report["results"]}
         self.assertEqual(cases["stream.openai_sse"]["status"], "suspect")
 
+    def test_join_base_and_endpoint_avoids_double_v1(self) -> None:
+        self.assertEqual(
+            join_base_and_endpoint("https://relay.example.com/v1", "/v1/chat/completions"),
+            "https://relay.example.com/v1/chat/completions",
+        )
+        self.assertEqual(
+            join_base_and_endpoint("https://relay.example.com", "/v1/chat/completions"),
+            "https://relay.example.com/v1/chat/completions",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .local_config import detect_local_config, detect_targets_raw
+from .local_config import detect_local_config, detect_targets_raw, redact_secret
 from .runner import Runner, write_report
 from .schemas import Target
 from .selftest import render_self_test_human, run_self_tests, write_self_test_report
@@ -59,6 +59,8 @@ def main(argv: list[str] | None = None) -> int:
     quickstart = sub.add_parser("quickstart", help="Run self-test, mock probes, and local detection in one command.")
     quickstart.add_argument("--out", default="", help="Output directory. Defaults to artifacts/quickstart-<timestamp>.")
     quickstart.add_argument("--no-probe-local", action="store_true", help="Do not probe detected localhost/loopback switcher URLs during local detection.")
+    quickstart.add_argument("--run-detected-live", action="store_true", help="Explicitly use a detected local OpenAI-compatible API key/base URL/model for one live synthetic probe run. This may incur API cost.")
+    quickstart.add_argument("--model-fallback", default="gpt-4o", help="Model to use if a live detected target has no model.")
 
     run = sub.add_parser("run", help="Run the core probe suite.")
     run.add_argument("--target-name", default="relay", help="Display name for the target.")
@@ -81,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     detect.add_argument("--no-write", action="store_true", help="Print only; do not write report.json.")
     detect.add_argument("--no-probe-local", action="store_true", help="Do not probe detected localhost/loopback switcher URLs.")
     detect.add_argument("--run-first", action="store_true", help="Run the core suite against the first detected OpenAI-compatible env target. This sends synthetic prompts to that configured API.")
+    detect.add_argument("--run-detected-live", action="store_true", help="Explicitly use a detected local OpenAI-compatible API key/base URL/model from env or config files for one live synthetic probe run. This may incur API cost.")
     detect.add_argument("--model-fallback", default="gpt-4o", help="Model to use if a runnable target has no detected model.")
 
     args = parser.parse_args(argv)
@@ -134,7 +137,11 @@ def _quickstart(args: argparse.Namespace) -> int:
 
     print("\n=== relayprobe 一键跑通 / Quickstart ===")
     print(f"输出目录 output: {out_dir}")
-    print("这个流程只跑本地自检、mock 探针和本地配置检测，不会请求真实外部 API。")
+    if args.run_detected_live:
+        print("已启用 --run-detected-live：除本地自检、mock 探针和本地配置检测外，还会使用本机检测到的 Key 发送真实合成测试请求。")
+        print("Key 只在本进程内存中用于 Authorization；不会明文打印、不会写入报告、不会上传。")
+    else:
+        print("默认安全模式：只跑本地自检、mock 探针和本地配置检测，不会请求真实外部 API。")
 
     exit_code = 0
 
@@ -164,10 +171,23 @@ def _quickstart(args: argparse.Namespace) -> int:
     (local_dir / "report.json").write_text(json.dumps(local_report, ensure_ascii=False, indent=2), encoding="utf-8")
     _print_local_report(local_report)
 
+    if args.run_detected_live:
+        print("\n[extra] 真实本机配置 API 合成探针 / Live detected API probe")
+        live_code = _run_detected_live_probe(out_dir / "live-detected", args.model_fallback)
+        if live_code:
+            exit_code = live_code
+
     print("\n=== 一键跑通完成 / Quickstart finished ===")
     print(f"报告目录: {out_dir}")
-    print("下一步如果要检测真实中转 API，请运行：")
-    print('  relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay')
+    if args.run_detected_live:
+        print(f"已运行本机真实配置合成探针，报告目录: {out_dir / 'live-detected'}")
+        if exit_code:
+            print("提示：退出码非 0 通常表示真实目标存在 FAIL 项；这不是 Key 泄露，而是检测发现需要查看报告。")
+    else:
+        print("下一步如果要检测真实中转 API，请运行：")
+        print('  relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay')
+        print("或者显式使用本机已配置的 API Key/base URL/model：")
+        print("  relayprobe quickstart --run-detected-live --out artifacts/quickstart-live")
     print("注意：真实检测只使用合成测试提示词，不要放业务数据或隐私内容。")
     return exit_code
 
@@ -245,7 +265,44 @@ def _detect_local(args: argparse.Namespace) -> int:
         probe_dir = out_dir / "probe"
         write_report(probe_report, probe_dir)
         _print_probe_report(probe_report)
+    if args.run_detected_live:
+        return _run_detected_live_probe(out_dir / "live-detected", args.model_fallback)
     return 0
+
+
+def _run_detected_live_probe(out_dir: Path, model_fallback: str) -> int:
+    raw_targets = detect_targets_raw(include_file_secrets=True)
+    runnable = [target for target in raw_targets if target.runnable_openai_compatible()]
+    if not runnable:
+        print("未找到可直接运行的 OpenAI-compatible 本地配置目标；没有发送任何真实 API 请求。")
+        return 1
+
+    selected = runnable[0]
+    model = selected.model or model_fallback
+    print("\n!!! 显式真实 API 测试提示 / Explicit live API notice !!!")
+    print("你已经启用 --run-detected-live：relayprobe 会使用本机检测到的 API Key 发送合成测试请求。")
+    print("Key 只在本进程内存中用于 Authorization，不会明文打印，也不会写入报告。")
+    print("这可能产生 API 调用记录和费用；请只在你有权限测试该 Key / 中转时使用。")
+    print(f"目标 target: {selected.name}")
+    print(f"来源 source: {selected.source}")
+    print(f"地址 base_url: {selected.base_url}")
+    print(f"模型 model: {model}")
+    print(f"Key 字段 key_name: {selected.api_key_name}")
+    print(f"Key 脱敏 key_redacted: {redact_secret(selected.api_key)}")
+
+    runner = Runner(
+        Target(
+            name="detected-live:" + selected.name,
+            base_url=selected.base_url or "",
+            model=model,
+            api_key=selected.api_key,
+        ),
+        StdlibHTTPTransport(),
+    )
+    probe_report = runner.run_core()
+    write_report(probe_report, out_dir)
+    _print_probe_report(probe_report)
+    return 1 if probe_report["summary"].get("fail", 0) else 0
 
 
 def _status_label(status: str) -> str:

@@ -22,7 +22,7 @@ class StdlibHTTPTransport(Transport):
         self.timeout_seconds = timeout_seconds
 
     def send(self, target: Target, body: dict[str, Any], stream: bool = False) -> TransportResponse:
-        url = target.base_url.rstrip("/") + target.endpoint
+        url = join_base_and_endpoint(target.base_url, target.endpoint)
         headers = {
             "Content-Type": "application/json",
             "Accept": "text/event-stream" if stream else "application/json",
@@ -61,6 +61,13 @@ class StdlibHTTPTransport(Transport):
                 sse_events=[],
                 error=str(exc),
             )
+
+
+def join_base_and_endpoint(base_url: str, endpoint: str) -> str:
+    base = base_url.rstrip("/")
+    if base.endswith("/v1") and endpoint.startswith("/v1/"):
+        return base + endpoint.removeprefix("/v1")
+    return base + endpoint
 
 
 class MockTransport(Transport):
@@ -226,4 +233,3 @@ def _last_json_from_sse(events: list[str]) -> dict[str, Any] | None:
         if isinstance(parsed, dict):
             return parsed
     return None
-

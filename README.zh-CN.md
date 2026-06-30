@@ -70,6 +70,18 @@ macOS / Linux：
 
 它会自动完成：项目自检、正常 mock、篡改 mock、本地 Codex / Claude Code / CCswitch 路由检测，并把报告统一写到 `artifacts/quickstart`。
 
+如需使用本机当前真实配置的 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针，需要显式加参数：
+
+PowerShell：
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
+
+已安装 CLI 时：
+
+    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
+
+注意：`--run-detected-live` 会读取本机检测到的 Key 并发送合成测试请求，可能产生 API 调用记录或费用。Key 只在本进程内存中用于 Authorization，不会明文打印、不会写进报告、不会上传。
+
 ### 2. 先跑项目自检
 
 推荐新手第一步先跑：

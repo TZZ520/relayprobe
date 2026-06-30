@@ -67,6 +67,18 @@ If you have already run `python -m pip install -e .`, you can also run:
 
 It automatically runs the project self-test, clean mock, tampered mock, and local Codex / Claude Code / CCswitch route detection, then writes reports under `artifacts/quickstart`.
 
+To explicitly use the currently detected real OpenAI-compatible local API key/base URL/model for one live synthetic probe run, add the live flag:
+
+PowerShell:
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
+
+Installed CLI:
+
+    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
+
+Note: `--run-detected-live` reads a detected local key and sends synthetic test requests. This may create API usage and cost. The key is used only in process memory for Authorization; it is not printed, written to reports, or uploaded.
+
 ### 2. Run the project self-test first
 
 Recommended first command:

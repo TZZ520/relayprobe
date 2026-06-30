@@ -67,6 +67,32 @@ class LocalConfigTests(unittest.TestCase):
         self.assertEqual(file_target["api_key_name"], "api_key")
         self.assertIn("file secrets are redacted", file_target["notes"][0])
 
+    def test_file_secret_is_raw_only_for_explicit_live_opt_in(self) -> None:
+        secret = "sk-live-abcdefghijklmnop"
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            config = home / ".codex" / "config.toml"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                '\n'.join(
+                    [
+                        'model = "gpt-4o"',
+                        'base_url = "https://relay.example.com/v1"',
+                        f'experimental_bearer_token = "{secret}"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            public_report = detect_local_config(env={}, home=home, appdata=None, probe_local=False)
+            raw_targets_default = detect_targets_raw(env={}, home=home, appdata=None)
+            raw_targets_opt_in = detect_targets_raw(env={}, home=home, appdata=None, include_file_secrets=True)
+
+        self.assertNotIn(secret, json.dumps(public_report, ensure_ascii=False))
+        self.assertFalse(raw_targets_default)
+        runnable = [target for target in raw_targets_opt_in if target.runnable_openai_compatible()]
+        self.assertEqual(runnable[0].api_key, secret)
+        self.assertEqual(runnable[0].base_url, "https://relay.example.com/v1")
+
     def test_claude_auth_token_env_is_detected(self) -> None:
         env = {
             "ANTHROPIC_AUTH_TOKEN": "anthropic-token-abcdefghijklmnop",

@@ -546,8 +546,15 @@ def probe_single_local_url(url: str) -> dict[str, Any]:
     except Exception as exc:
         return {"url": redact_urlish(url), "reachable": False, "error": exc.__class__.__name__}
 
-def detect_targets_raw(env: dict[str, str] | None = None, home: Path | None = None) -> list[LocalTarget]:
+def detect_targets_raw(
+    env: dict[str, str] | None = None,
+    home: Path | None = None,
+    appdata: Path | None = None,
+    include_file_secrets: bool = False,
+) -> list[LocalTarget]:
     env = dict(os.environ if env is None else env)
+    home = Path.home() if home is None else home
+    appdata = Path(env.get("APPDATA", "")) if appdata is None and env.get("APPDATA") else appdata
     report_targets: list[LocalTarget] = []
     for provider, spec in ENV_CANDIDATES.items():
         api_key_name, api_key = first_env(env, spec["api_key"])
@@ -566,9 +573,49 @@ def detect_targets_raw(env: dict[str, str] | None = None, home: Path | None = No
                     model=model,
                 )
             )
-    # Raw file secrets are intentionally not used for automatic network runs.
-    # File parsing is for redacted discovery only unless a future explicit allowlist is added.
+    if include_file_secrets:
+        report_targets.extend(detect_file_targets_raw(env=env, home=home, appdata=appdata))
     return report_targets
+
+
+def detect_file_targets_raw(env: dict[str, str], home: Path, appdata: Path | None) -> list[LocalTarget]:
+    targets: list[LocalTarget] = []
+    for path in candidate_paths(home, appdata, env):
+        if not path.exists() or not path.is_file():
+            continue
+        values = extract_file_values_raw(path)
+        targets.extend(targets_from_file_raw(path, values))
+    targets.extend(combine_file_targets_for_live_run(targets))
+    return targets
+
+
+def combine_file_targets_for_live_run(targets: list[LocalTarget]) -> list[LocalTarget]:
+    combined: list[LocalTarget] = []
+    for provider_hint, protocol in (("codex", "openai-compatible"), ("claude-code", "anthropic-messages")):
+        related = [target for target in targets if target.provider_hint == provider_hint]
+        if not related:
+            continue
+        base = next((target.base_url for target in related if target.base_url), None)
+        model = next((target.model for target in related if target.model), None)
+        key_target = next((target for target in related if target.api_key), None)
+        if base and key_target:
+            combined.append(
+                LocalTarget(
+                    name="combined-local:" + provider_hint,
+                    provider_hint=provider_hint,
+                    protocol=protocol,
+                    source="combined local config files",
+                    api_key=key_target.api_key,
+                    api_key_name=key_target.api_key_name,
+                    base_url=base,
+                    model=model,
+                    notes=[
+                        "explicit opt-in live run target assembled from local config files",
+                        "raw key is held in memory only and is not written to reports",
+                    ],
+                )
+            )
+    return combined
 
 
 def first_env(env: dict[str, str], names: list[str]) -> tuple[str | None, str | None]:
@@ -668,6 +715,74 @@ def extract_file_values(path: Path) -> list[LocalValue]:
             )
         )
     return found
+
+
+def extract_file_values_raw(path: Path) -> list[dict[str, str]]:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+
+    parsed: Any | None = None
+    if path.suffix.lower() == ".json":
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            parsed = None
+    if parsed is None:
+        parsed = parse_key_value_text(text)
+
+    values: list[dict[str, str]] = []
+    for key, value in walk_values(parsed):
+        if not is_interesting_key(key):
+            continue
+        value_str = "" if value is None else str(value)
+        if not value_str:
+            continue
+        values.append({"name": key, "value_kind": classify_key(key), "value": value_str})
+    return values
+
+
+def targets_from_file_raw(path: Path, values: list[dict[str, str]]) -> list[LocalTarget]:
+    base_urls = [item for item in values if item["value_kind"] == "base_url"]
+    models = [item for item in values if item["value_kind"] == "model"]
+    secrets = sorted((item for item in values if item["value_kind"] == "secret"), key=secret_priority)
+    if not (base_urls or models or secrets):
+        return []
+    provider_hint = provider_hint_for_path(path)
+    protocol = protocol_for_provider_hint(provider_hint)
+    first_secret = secrets[0] if secrets else None
+    return [
+        LocalTarget(
+            name="config-file-raw:" + path.name,
+            provider_hint=provider_hint,
+            protocol=protocol,
+            source=str(path),
+            api_key=first_secret["value"] if first_secret else None,
+            api_key_name=first_secret["name"] if first_secret else None,
+            base_url=base_urls[0]["value"] if base_urls else None,
+            model=models[0]["value"] if models else None,
+            notes=[
+                "raw secret available only for explicit opt-in live run",
+                "raw key is held in memory only and is not written to reports",
+            ],
+        )
+    ]
+
+
+def secret_priority(item: dict[str, str]) -> tuple[int, str]:
+    name = item["name"].lower().replace("-", "_")
+    if "refresh" in name:
+        return (90, name)
+    if "api_key" in name or ("api" in name and "key" in name):
+        return (0, name)
+    if "bearer" in name:
+        return (1, name)
+    if "auth_token" in name or "access_token" in name:
+        return (2, name)
+    if "token" in name:
+        return (10, name)
+    return (50, name)
 
 
 def parse_key_value_text(text: str) -> dict[str, Any]:

@@ -28,50 +28,75 @@ This repository contains a local MVP:
 - unit tests
 - GitHub Actions workflow
 
-## Quick start
+## Quick start: how to run it after cloning
 
-Run the local mock suite without any API key:
+relayprobe does not require a server deployment. It is a local Python CLI tool.
+
+### 1. Clone and install
+
+PowerShell / Windows:
+
+    git clone https://github.com/TZZ520/relayprobe.git
+    cd relayprobe
+    python -m pip install -e .
+
+If you do not want to install it, run with `PYTHONPATH=src`:
 
     $env:PYTHONPATH="src"
     python -m relayprobe doctor
-    python -m relayprobe run --mock clean --out artifacts/mock-clean
-    python -m relayprobe run --mock tampered --out artifacts/mock-tampered
 
-Run the unit tests:
+### 2. Run the project self-test first
 
-    $env:PYTHONPATH="src"
-    python -m unittest discover -s tests
+Recommended first command:
 
-Run the human-readable project self-test, which prints every test item and its status:
+    relayprobe self-test --out artifacts/self-test
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe self-test --out artifacts/self-test
+It prints all 13 test items with a human-readable status such as `PASS / 通过`. This confirms the local checkout is working.
 
-Detect local API configuration used by Codex, Claude Code, or common CCswitch-style setups without printing raw keys:
+### 3. Run local mocks to understand normal and tampered output
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe detect-local --out artifacts/local-detect
+No API key is needed:
 
-The local detector scans environment variables and common config files under your user profile. It reports actual base URLs and model names, but API keys/tokens are only shown as redacted values plus a short local fingerprint. Reports are written under `artifacts/`, which is ignored by git.
+    relayprobe run --mock clean --out artifacts/mock-clean
+    relayprobe run --mock tampered --out artifacts/mock-tampered
 
-The summary also classifies the likely active route for Codex and Claude Code: `official_account_login_likely`, `official_api_key`, `official_api_key_default_endpoint_likely`, `official_cloud_api`, `third_party_api`, `local_switcher_or_proxy`, or `unknown`. If a detected base URL points to localhost/loopback, relayprobe probes that local URL without sending any API key and reports `local_switcher_status`.
+`clean` simulates a normal relay.
+`tampered` simulates a modified relay and should produce multiple `SUSPECT / 可疑` findings.
 
-To run one validation pass against the first detected OpenAI-compatible environment target:
+### 4. Detect where local Codex / Claude Code / CCswitch is pointing
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe detect-local --run-first --out artifacts/local-detect
+    relayprobe detect-local --out artifacts/local-detect
 
-`--run-first` sends only relayprobe's synthetic test prompts to that configured API. It does not upload the local detection report, and it intentionally does not use secrets parsed from config files for network calls.
+This scans environment variables and common config files and reports:
 
-If you want discovery without even localhost probing, add `--no-probe-local`.
+- whether Codex looks like it uses official API, third-party API, or a local proxy
+- whether Claude Code looks like it uses official API, third-party API, or local CCswitch/proxy
+- whether a loopback API is reachable
+- actual base URL and model name
+- redacted API key/token presence, never raw secrets
 
-Run against a real relay only when you explicitly provide a synthetic test target:
+Disable even localhost probing with:
 
-    $env:PYTHONPATH="src"
+    relayprobe detect-local --no-probe-local --out artifacts/local-detect
+
+### 5. Run against a real relay
+
+Only use synthetic test targets. Do not use private prompts, customer data, production-only keys, or sensitive content:
+
     $env:RELAYPROBE_API_KEY="sk-..."
-    python -m relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay
+    relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay
 
-Do not use real secrets, private prompts, customer data, or production-only keys in early testing.
+### 6. Read the statuses
+
+relayprobe prints each test item with a plain status:
+
+- `PASS / 通过`: expected behavior was observed
+- `SUSPECT / 可疑`: behavior suggests modification, downgrade, caching, filtering, or field inconsistency
+- `FAIL / 失败`: request or protocol failed
+- `INCONCLUSIVE / 证据不足`: the signal is too weak to classify
+- `INFO / 信息`: useful metadata, not proof by itself
+
+Reports are written under `artifacts/` by default. The directory is ignored by git.
 
 ## Evidence levels
 

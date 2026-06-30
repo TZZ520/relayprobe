@@ -31,48 +31,77 @@ relayprobe 当前 MVP 重点覆盖：
 - inconclusive：证据不足
 - info：有参考价值，但不能证明问题
 
-## 快速开始
+## 快速开始：拿到项目后怎么跑
 
-不需要 API Key，先跑本地 mock：
+relayprobe 不需要部署服务器。它是一个本地 Python CLI 工具，克隆下来就可以跑。
+
+### 1. 克隆并安装
+
+PowerShell / Windows：
+
+    git clone https://github.com/TZZ520/relayprobe.git
+    cd relayprobe
+    python -m pip install -e .
+
+如果你不想安装，也可以每次用 `PYTHONPATH=src` 方式运行：
 
     $env:PYTHONPATH="src"
     python -m relayprobe doctor
-    python -m relayprobe run --mock clean --out artifacts/mock-clean
-    python -m relayprobe run --mock tampered --out artifacts/mock-tampered
 
-运行测试：
+### 2. 先跑项目自检
 
-    $env:PYTHONPATH="src"
-    python -m unittest discover -s tests
+推荐新手第一步先跑：
 
-运行更适合新手阅读的项目自检，会逐条显示每个测试项和状态：
+    relayprobe self-test --out artifacts/self-test
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe self-test --out artifacts/self-test
+它会逐条显示 13 个测试项，每条都有测试内容和状态，例如 `PASS / 通过`。这一步用来确认你本地项目本身是正常的。
 
-检测本机 Codex、Claude Code 或常见 CCswitch 类配置正在使用的 API 信息，但不打印原始 Key：
+### 3. 跑本地 mock，先理解正常和异常输出
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe detect-local --out artifacts/local-detect
+不需要 API Key，先跑两个本地模拟：
 
-这个本地检测会扫描环境变量和用户目录下常见配置文件。报告会展示实际 base URL 和模型名；API Key / token 只会显示脱敏值和 8 位本地指纹，不会把原文写进报告。报告默认写入 `artifacts/`，该目录已被 `.gitignore` 忽略。
+    relayprobe run --mock clean --out artifacts/mock-clean
+    relayprobe run --mock tampered --out artifacts/mock-tampered
 
-summary 里还会判断 Codex 和 Claude Code 当前更像走哪条路：`official_account_login_likely`、`official_api_key`、`official_api_key_default_endpoint_likely`、`official_cloud_api`、`third_party_api`、`local_switcher_or_proxy` 或 `unknown`。如果检测到 base URL 指向 localhost/loopback，relayprobe 会在不发送 API Key 的情况下探测这个本地地址，并输出 `local_switcher_status`。
+`clean` 表示正常中转的模拟结果。
+`tampered` 表示被篡改/掺水中转的模拟结果，会出现多项 `SUSPECT / 可疑`。
 
-如果想直接拿检测到的第一个 OpenAI-compatible 环境变量目标跑一轮验证：
+### 4. 检测本机 Codex / Claude Code / CCswitch 当前走哪里
 
-    $env:PYTHONPATH="src"
-    python -m relayprobe detect-local --run-first --out artifacts/local-detect
+    relayprobe detect-local --out artifacts/local-detect
 
-`--run-first` 只会把 relayprobe 的合成测试提示词发到当前配置的 API；不会上传本地检测报告，也不会自动使用从配置文件里解析到的密钥进行联网请求。
+这个命令会扫描环境变量和用户目录下常见配置文件，告诉你：
 
-如果你连 localhost 探测都不想做，可以加 `--no-probe-local`。
+- Codex 当前更像走官方 API、三方 API，还是本地代理
+- Claude Code 当前更像走官方 API、三方 API，还是本地 CCswitch / proxy
+- 本地 loopback API 是否可访问
+- 实际 base URL 和模型名
+- API Key / token 只脱敏展示，不会明文输出
 
-针对真实中转 API 运行时，请只使用合成测试目标，不要放真实业务提示词、客户数据、生产密钥或隐私内容：
+如果你连 localhost 探测都不想做，可以加：
 
-    $env:PYTHONPATH="src"
+    relayprobe detect-local --no-probe-local --out artifacts/local-detect
+
+### 5. 真正检测某个中转 API
+
+请只使用合成测试目标，不要放真实业务提示词、客户数据、生产密钥或隐私内容：
+
     $env:RELAYPROBE_API_KEY="sk-..."
-    python -m relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay
+    relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay
+
+### 6. 怎么看结果
+
+relayprobe 会用明文状态展示每个测试项：
+
+- `PASS / 通过`：这个测试项表现正常
+- `SUSPECT / 可疑`：观察到疑似篡改、降级、缓存、过滤或字段异常
+- `FAIL / 失败`：请求或协议失败
+- `INCONCLUSIVE / 证据不足`：信号太弱，不能判断
+- `INFO / 信息`：有参考价值，但不能单独证明问题
+
+所有输出报告默认写到 `artifacts/`，该目录已被 `.gitignore` 忽略，不会提交到 GitHub。
+
+本地检测策略和支持的配置来源见 [docs/local-detection.zh-CN.md](docs/local-detection.zh-CN.md)。
 
 ## 为什么这么设计
 

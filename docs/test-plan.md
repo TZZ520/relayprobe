@@ -1,5 +1,7 @@
 # relayprobe test plan
 
+中文版本见 [docs/test-plan.zh-CN.md](test-plan.zh-CN.md)。
+
 ## Goal
 
 Detect observable evidence that an API relay is not behaving like a transparent OpenAI-compatible forwarder.
@@ -60,4 +62,3 @@ Each run stores:
 - Never commit .env, API keys, raw customer prompts, or production reports.
 - Do not treat model self-identification as strong evidence.
 - Do not claim end-to-end response integrity without upstream attestation.
-

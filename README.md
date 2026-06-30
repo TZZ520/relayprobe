@@ -1,5 +1,7 @@
 # relayprobe
 
+Languages: English | [简体中文](README.zh-CN.md)
+
 relayprobe is an evidence-oriented audit tool for OpenAI-compatible API relays and LLM gateways.
 
 It is designed to detect observable signs of:
@@ -64,6 +66,12 @@ Many public LLM gateway projects intentionally support model routing, fallback, 
 
 relayprobe therefore tests gateway behavior directly instead of asking the model to self-identify.
 
+## Acknowledgements and prior work
+
+relayprobe was shaped by public work from the LLM gateway, relay, observability, and security-proxy ecosystem. This project is independent and is not affiliated with those projects, but it intentionally credits them because their open work makes this kind of audit tooling easier to reason about.
+
+See [docs/credits.md](docs/credits.md) for the bilingual acknowledgements and reference list, including projects such as [@BerriAI/litellm](https://github.com/BerriAI/litellm), [@Portkey-AI/gateway](https://github.com/Portkey-AI/gateway), [@QuantumNous/new-api](https://github.com/QuantumNous/new-api), [@Calcium-Ion/new-api](https://github.com/Calcium-Ion/new-api), [@songquanpeng/one-api](https://github.com/songquanpeng/one-api), [@Forlives/relay-api-hub](https://github.com/Forlives/relay-api-hub), and others.
+
 ## Repository layout
 
     src/relayprobe/      CLI, transports, probes, analyzers, runner
@@ -78,4 +86,3 @@ relayprobe therefore tests gateway behavior directly instead of asking the model
 - Response integrity cannot be proven end-to-end unless the upstream provider signs responses or exposes independently verifiable request IDs.
 - Some guardrail findings indicate legitimate security middleware, not necessarily malicious tampering.
 - Live model behavior is probabilistic; repeated runs and direct baselines matter.
-

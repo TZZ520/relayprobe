@@ -1,22 +1,24 @@
 # GitHub research notes
 
+中文读者可同时参考 [README.zh-CN.md](../README.zh-CN.md) 和 [docs/credits.md](credits.md)。
+
 This document summarizes public GitHub findings that shaped the relayprobe MVP.
 
 ## Existing detection projects
 
-- Forlives/relay-api-hub: focuses on detecting whether Claude/GPT/Gemini relay APIs are watered down. It checks stream fingerprints, usage fields, reasoning/math, code quality, and response consistency. Useful reference, but several checks are heuristic and some rely on self-reported model identity or small samples.
+- [@Forlives/relay-api-hub](https://github.com/Forlives/relay-api-hub): focuses on detecting whether Claude/GPT/Gemini relay APIs are watered down. It checks stream fingerprints, usage fields, reasoning/math, code quality, and response consistency. Useful reference, but several checks are heuristic and some rely on self-reported model identity or small samples.
 
 ## Gateway and relay projects with relevant capabilities
 
-- BerriAI/litellm: OpenAI-compatible AI gateway for many providers, with virtual keys, spend tracking, guardrails, load balancing, and admin features.
-- Portkey-AI/gateway: AI gateway with retries, fallbacks, load balancing, conditional routing, and guardrails.
-- QuantumNous/new-api / Calcium-Ion/new-api: AI API gateway and management system. Code inspection confirmed model_mapping, param_override, header_override, system_prompt_override, cache/usage accounting, and request field removal logic.
-- songquanpeng/one-api: One API base project. Code inspection confirmed model mapping and relay metadata support.
-- MartialBE/one-hub and aiprodcoder/MIXAPI: One API/New API derivatives for multi-channel model distribution and billing.
-- maximhq/bifrost: AI gateway with automatic fallbacks, load balancing, semantic caching, and governance.
-- Helicone/helicone: observability and gateway platform with routing, fallback, prompt management, and logging.
-- ax128/AegisGate and techlab-innov/llmtrace: security proxies with prompt injection detection, PII redaction, response filtering, and audit logging.
-- katanemo/plano: agentic proxy/data plane with routing, orchestration, filter chains, moderation, and smart routing.
+- [@BerriAI/litellm](https://github.com/BerriAI/litellm): OpenAI-compatible AI gateway for many providers, with virtual keys, spend tracking, guardrails, load balancing, and admin features.
+- [@Portkey-AI/gateway](https://github.com/Portkey-AI/gateway): AI gateway with retries, fallbacks, load balancing, conditional routing, and guardrails.
+- [@QuantumNous/new-api](https://github.com/QuantumNous/new-api) / [@Calcium-Ion/new-api](https://github.com/Calcium-Ion/new-api): AI API gateway and management system. Code inspection confirmed model_mapping, param_override, header_override, system_prompt_override, cache/usage accounting, and request field removal logic.
+- [@songquanpeng/one-api](https://github.com/songquanpeng/one-api): One API base project. Code inspection confirmed model mapping and relay metadata support.
+- [@MartialBE/one-hub](https://github.com/MartialBE/one-hub) and [@aiprodcoder/MIXAPI](https://github.com/aiprodcoder/MIXAPI): One API/New API derivatives for multi-channel model distribution and billing.
+- [@maximhq/bifrost](https://github.com/maximhq/bifrost): AI gateway with automatic fallbacks, load balancing, semantic caching, and governance.
+- [@Helicone/helicone](https://github.com/Helicone/helicone): observability and gateway platform with routing, fallback, prompt management, and logging.
+- [@ax128/AegisGate](https://github.com/ax128/AegisGate) and [@techlab-innov/llmtrace](https://github.com/techlab-innov/llmtrace): security proxies with prompt injection detection, PII redaction, response filtering, and audit logging.
+- [@katanemo/plano](https://github.com/katanemo/plano): agentic proxy/data plane with routing, orchestration, filter chains, moderation, and smart routing.
 
 ## Main implementation implications
 
@@ -34,4 +36,3 @@ The public ecosystem already contains legitimate middleware features that can al
 10. usage and cost normalization
 
 relayprobe treats these as test targets. A finding means observable behavior consistent with modification; it does not automatically prove malicious intent.
-

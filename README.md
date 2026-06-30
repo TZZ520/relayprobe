@@ -45,6 +45,14 @@ If you do not want to install it, run with `PYTHONPATH=src`:
     $env:PYTHONPATH="src"
     python -m relayprobe doctor
 
+### One-command quickstart
+
+If you just want to verify that everything runs and see the output format, run:
+
+    relayprobe quickstart --out artifacts/quickstart
+
+It automatically runs the project self-test, clean mock, tampered mock, and local Codex / Claude Code / CCswitch route detection, then writes reports under `artifacts/quickstart`.
+
 ### 2. Run the project self-test first
 
 Recommended first command:

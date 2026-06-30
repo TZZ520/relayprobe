@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +56,10 @@ def main(argv: list[str] | None = None) -> int:
     self_test.add_argument("--out", default="artifacts/self-test", help="Output directory for self-test report files.")
     self_test.add_argument("--no-write", action="store_true", help="Print only; do not write report files.")
 
+    quickstart = sub.add_parser("quickstart", help="Run self-test, mock probes, and local detection in one command.")
+    quickstart.add_argument("--out", default="", help="Output directory. Defaults to artifacts/quickstart-<timestamp>.")
+    quickstart.add_argument("--no-probe-local", action="store_true", help="Do not probe detected localhost/loopback switcher URLs during local detection.")
+
     run = sub.add_parser("run", help="Run the core probe suite.")
     run.add_argument("--target-name", default="relay", help="Display name for the target.")
     run.add_argument("--base-url", default=os.getenv("RELAYPROBE_BASE_URL", ""), help="Relay base URL, for example https://relay.example.com")
@@ -86,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
         return _list_suites()
     if args.command == "self-test":
         return _self_test(args)
+    if args.command == "quickstart":
+        return _quickstart(args)
     if args.command == "run":
         return _run(args)
     if args.command == "report":
@@ -118,6 +125,56 @@ def _self_test(args: argparse.Namespace) -> int:
         print(f"wrote {text_path}")
     print(render_self_test_human(report))
     return 0 if report["summary"].get("successful") else 1
+
+
+def _quickstart(args: argparse.Namespace) -> int:
+    run_id = time.strftime("quickstart-%Y%m%d-%H%M%S")
+    out_dir = Path(args.out) if args.out else Path("artifacts") / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\n=== relayprobe 一键跑通 / Quickstart ===")
+    print(f"输出目录 output: {out_dir}")
+    print("这个流程只跑本地自检、mock 探针和本地配置检测，不会请求真实外部 API。")
+
+    exit_code = 0
+
+    print("\n[1/4] 项目自检 / Self-test")
+    self_report = run_self_tests()
+    write_self_test_report(self_report, out_dir / "self-test")
+    print(render_self_test_human(self_report))
+    if not self_report["summary"].get("successful"):
+        exit_code = 1
+
+    print("\n[2/4] 正常中转模拟 / Mock clean")
+    clean_report = _run_mock_suite("clean")
+    write_report(clean_report, out_dir / "mock-clean")
+    _print_probe_report(clean_report)
+    if clean_report["summary"].get("fail", 0) or clean_report["summary"].get("suspect", 0):
+        exit_code = 1
+
+    print("\n[3/4] 篡改中转模拟 / Mock tampered")
+    tampered_report = _run_mock_suite("tampered")
+    write_report(tampered_report, out_dir / "mock-tampered")
+    _print_probe_report(tampered_report)
+
+    print("\n[4/4] 本地 Codex / Claude Code / CCswitch 路由检测")
+    local_report = detect_local_config(probe_local=not args.no_probe_local)
+    local_dir = out_dir / "local-detect"
+    local_dir.mkdir(parents=True, exist_ok=True)
+    (local_dir / "report.json").write_text(json.dumps(local_report, ensure_ascii=False, indent=2), encoding="utf-8")
+    _print_local_report(local_report)
+
+    print("\n=== 一键跑通完成 / Quickstart finished ===")
+    print(f"报告目录: {out_dir}")
+    print("下一步如果要检测真实中转 API，请运行：")
+    print('  relayprobe run --base-url "https://your-relay.example.com" --model "gpt-4o" --api-key-env RELAYPROBE_API_KEY --out artifacts/live-relay')
+    print("注意：真实检测只使用合成测试提示词，不要放业务数据或隐私内容。")
+    return exit_code
+
+
+def _run_mock_suite(mode: str) -> dict[str, Any]:
+    target = Target(name="relay", base_url="mock://relayprobe", model="gpt-4o")
+    return Runner(target, MockTransport(mode)).run_core()
 
 
 def _run(args: argparse.Namespace) -> int:

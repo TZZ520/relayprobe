@@ -48,6 +48,14 @@ PowerShell / Windows：
     $env:PYTHONPATH="src"
     python -m relayprobe doctor
 
+### 一键跑通（最推荐新手先用）
+
+如果只是想确认项目能不能跑、输出长什么样，直接执行：
+
+    relayprobe quickstart --out artifacts/quickstart
+
+它会自动完成：项目自检、正常 mock、篡改 mock、本地 Codex / Claude Code / CCswitch 路由检测，并把报告统一写到 `artifacts/quickstart`。
+
 ### 2. 先跑项目自检
 
 推荐新手第一步先跑：

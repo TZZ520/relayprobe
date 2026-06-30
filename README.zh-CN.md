@@ -45,6 +45,11 @@ relayprobe 当前 MVP 重点覆盖：
     $env:PYTHONPATH="src"
     python -m unittest discover -s tests
 
+运行更适合新手阅读的项目自检，会逐条显示每个测试项和状态：
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe self-test --out artifacts/self-test
+
 检测本机 Codex、Claude Code 或常见 CCswitch 类配置正在使用的 API 信息，但不打印原始 Key：
 
     $env:PYTHONPATH="src"

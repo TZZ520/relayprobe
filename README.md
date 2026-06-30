@@ -42,6 +42,11 @@ Run the unit tests:
     $env:PYTHONPATH="src"
     python -m unittest discover -s tests
 
+Run the human-readable project self-test, which prints every test item and its status:
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe self-test --out artifacts/self-test
+
 Detect local API configuration used by Codex, Claude Code, or common CCswitch-style setups without printing raw keys:
 
     $env:PYTHONPATH="src"

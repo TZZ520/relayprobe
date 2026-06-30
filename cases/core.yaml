@@ -1,0 +1,34 @@
+# Human-readable suite outline. The MVP implementation defines the same suite in Python.
+suite: core
+probes:
+  - id: request_integrity.echo_nonce
+    category: request_integrity
+    expected: response contains the unique nonce exactly once
+  - id: hidden_prompt.exact_output
+    category: hidden_prompt
+    expected: response equals the requested marker with no prefix or suffix
+  - id: param.max_tokens
+    category: param_override
+    expected: max_tokens=1 produces a very short completion
+  - id: param.stop_sequence
+    category: param_override
+    expected: stop sequence is not present in the response
+  - id: param.json_object
+    category: param_override
+    expected: response content is valid JSON
+  - id: stream.openai_sse
+    category: stream_protocol
+    expected: stream response contains data lines and a DONE marker
+  - id: cache.nonce_pair
+    category: cache_detection
+    expected: two near-duplicate requests return their own nonce, not cached content
+  - id: guardrail.synthetic_secret_echo
+    category: guardrail_redaction
+    expected: synthetic fake secret is echoed exactly
+  - id: usage.local_consistency
+    category: usage_consistency
+    expected: total_tokens equals prompt_tokens plus completion_tokens
+  - id: model.reported_name
+    category: model_identity
+    expected: response model field matches requested model; matching is not proof of true model
+

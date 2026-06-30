@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relayprobe"
+version = "0.1.0"
+description = "Evidence-oriented audit tool for OpenAI-compatible API relays and LLM gateways."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "relayprobe contributors" }
+]
+keywords = ["llm", "api", "relay", "gateway", "audit", "openai-compatible"]
+dependencies = []
+
+[project.scripts]
+relayprobe = "relayprobe.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

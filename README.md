@@ -47,7 +47,21 @@ If you do not want to install it, run with `PYTHONPATH=src`:
 
 ### One-command quickstart
 
-If you just want to verify that everything runs and see the output format, run:
+If you just want to verify that everything runs and see the output format, run the root script:
+
+Windows PowerShell:
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1
+
+Windows batch / double-click:
+
+    .\quickstart.bat
+
+macOS / Linux:
+
+    bash ./quickstart.sh
+
+If you have already run `python -m pip install -e .`, you can also run:
 
     relayprobe quickstart --out artifacts/quickstart
 

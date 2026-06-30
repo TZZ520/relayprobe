@@ -50,7 +50,21 @@ PowerShell / Windows：
 
 ### 一键跑通（最推荐新手先用）
 
-如果只是想确认项目能不能跑、输出长什么样，直接执行：
+如果只是想确认项目能不能跑、输出长什么样，直接执行根目录脚本：
+
+Windows PowerShell：
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1
+
+Windows 双击/命令行：
+
+    .\quickstart.bat
+
+macOS / Linux：
+
+    bash ./quickstart.sh
+
+如果你已经执行过 `python -m pip install -e .`，也可以直接运行：
 
     relayprobe quickstart --out artifacts/quickstart
 

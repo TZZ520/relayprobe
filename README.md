@@ -42,6 +42,24 @@ Run the unit tests:
     $env:PYTHONPATH="src"
     python -m unittest discover -s tests
 
+Detect local API configuration used by Codex, Claude Code, or common CCswitch-style setups without printing raw keys:
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe detect-local --out artifacts/local-detect
+
+The local detector scans environment variables and common config files under your user profile. It reports actual base URLs and model names, but API keys/tokens are only shown as redacted values plus a short local fingerprint. Reports are written under `artifacts/`, which is ignored by git.
+
+The summary also classifies the likely active route for Codex and Claude Code: `official_account_login_likely`, `official_api_key`, `official_api_key_default_endpoint_likely`, `official_cloud_api`, `third_party_api`, `local_switcher_or_proxy`, or `unknown`. If a detected base URL points to localhost/loopback, relayprobe probes that local URL without sending any API key and reports `local_switcher_status`.
+
+To run one validation pass against the first detected OpenAI-compatible environment target:
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe detect-local --run-first --out artifacts/local-detect
+
+`--run-first` sends only relayprobe's synthetic test prompts to that configured API. It does not upload the local detection report, and it intentionally does not use secrets parsed from config files for network calls.
+
+If you want discovery without even localhost probing, add `--no-probe-local`.
+
 Run against a real relay only when you explicitly provide a synthetic test target:
 
     $env:PYTHONPATH="src"
@@ -70,7 +88,7 @@ relayprobe therefore tests gateway behavior directly instead of asking the model
 
 relayprobe was shaped by public work from the LLM gateway, relay, observability, and security-proxy ecosystem. This project is independent and is not affiliated with those projects, but it intentionally credits them because their open work makes this kind of audit tooling easier to reason about.
 
-See [docs/credits.md](docs/credits.md) for the bilingual acknowledgements and reference list, including projects such as [@BerriAI/litellm](https://github.com/BerriAI/litellm), [@Portkey-AI/gateway](https://github.com/Portkey-AI/gateway), [@QuantumNous/new-api](https://github.com/QuantumNous/new-api), [@Calcium-Ion/new-api](https://github.com/Calcium-Ion/new-api), [@songquanpeng/one-api](https://github.com/songquanpeng/one-api), [@Forlives/relay-api-hub](https://github.com/Forlives/relay-api-hub), and others.
+See [docs/credits.md](docs/credits.md) for the bilingual acknowledgements and reference list, including projects such as [@BerriAI/litellm](https://github.com/BerriAI/litellm), [@Portkey-AI/gateway](https://github.com/Portkey-AI/gateway), [@QuantumNous/new-api](https://github.com/QuantumNous/new-api), [@Calcium-Ion/new-api](https://github.com/Calcium-Ion/new-api), [@songquanpeng/one-api](https://github.com/songquanpeng/one-api), [@Forlives/relay-api-hub](https://github.com/Forlives/relay-api-hub), [@musistudio/claude-code-router](https://github.com/musistudio/claude-code-router), [@farion1231/cc-switch](https://github.com/farion1231/cc-switch), and others.
 
 ## Repository layout
 
@@ -79,6 +97,8 @@ See [docs/credits.md](docs/credits.md) for the bilingual acknowledgements and re
     docs/                research notes, threat model, test plan
     cases/               human-readable suite configuration
     .github/workflows/  CI
+
+See [docs/local-detection.md](docs/local-detection.md) for the local-only detection policy and supported config sources.
 
 ## Limitations
 

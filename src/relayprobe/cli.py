@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from .local_config import detect_local_config, detect_targets_raw
 from .runner import Runner, write_report
 from .schemas import Target
 from .transport import MockTransport, StdlibHTTPTransport
@@ -36,6 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     report = sub.add_parser("report", help="Print a compact summary from report.json.")
     report.add_argument("path", help="Path to report.json")
 
+    detect = sub.add_parser("detect-local", help="Detect local Codex/Claude Code/CC switch API configuration with redaction.")
+    detect.add_argument("--out", default="artifacts/local-detect", help="Output directory for the redacted local detection report.")
+    detect.add_argument("--no-write", action="store_true", help="Print only; do not write report.json.")
+    detect.add_argument("--no-probe-local", action="store_true", help="Do not probe detected localhost/loopback switcher URLs.")
+    detect.add_argument("--run-first", action="store_true", help="Run the core suite against the first detected OpenAI-compatible env target. This sends synthetic prompts to that configured API.")
+    detect.add_argument("--model-fallback", default="gpt-4o", help="Model to use if a runnable target has no detected model.")
+
     args = parser.parse_args(argv)
 
     if args.command == "doctor":
@@ -46,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run(args)
     if args.command == "report":
         return _report(args.path)
+    if args.command == "detect-local":
+        return _detect_local(args)
     parser.error("unknown command")
     return 2
 
@@ -105,6 +115,75 @@ def _report(path: str) -> int:
     return 0
 
 
+def _detect_local(args: argparse.Namespace) -> int:
+    report = detect_local_config(probe_local=not args.no_probe_local)
+    out_dir = Path(args.out)
+    if not args.no_write:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))
+    for target in report["targets"]:
+        print(
+            "target "
+            + target["name"]
+            + " protocol="
+            + target["protocol"]
+            + " base_url="
+            + str(target["base_url"])
+            + " model="
+            + str(target["model"])
+            + " key="
+            + str(target["api_key_redacted"])
+            + " runnable="
+            + str(target["runnable_openai_compatible"])
+        )
+    assessment = report.get("assessment", {})
+    for client in assessment.get("clients", []):
+        print(
+            "client "
+            + client["client"]
+            + " route="
+            + client["route_type"]
+            + " confidence="
+            + client["confidence"]
+            + " auth="
+            + client["auth_mode"]
+            + " base_url="
+            + str(client.get("base_url"))
+            + " model="
+            + str(client.get("model"))
+        )
+    local_switcher = assessment.get("local_switcher", {})
+    print(
+        "local_switcher status="
+        + str(local_switcher.get("status"))
+        + " urls="
+        + json.dumps(local_switcher.get("configured_local_base_urls", []), ensure_ascii=False)
+    )
+
+    if args.run_first:
+        raw_targets = [target for target in detect_targets_raw() if target.runnable_openai_compatible()]
+        if not raw_targets:
+            print("no runnable OpenAI-compatible env target found; detect-local did not send any network request")
+            return 1
+        selected = raw_targets[0]
+        model = selected.model or args.model_fallback
+        print("running synthetic probe against detected target: " + selected.name + " model=" + model)
+        runner = Runner(
+            Target(
+                name="detected:" + selected.name,
+                base_url=selected.base_url or "",
+                model=model,
+                api_key=selected.api_key,
+            ),
+            StdlibHTTPTransport(),
+        )
+        probe_report = runner.run_core()
+        probe_dir = out_dir / "probe"
+        write_report(probe_report, probe_dir)
+        print(json.dumps(probe_report["summary"], ensure_ascii=False, sort_keys=True))
+    return 0
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
-

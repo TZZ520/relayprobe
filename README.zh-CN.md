@@ -45,6 +45,24 @@ relayprobe 当前 MVP 重点覆盖：
     $env:PYTHONPATH="src"
     python -m unittest discover -s tests
 
+检测本机 Codex、Claude Code 或常见 CCswitch 类配置正在使用的 API 信息，但不打印原始 Key：
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe detect-local --out artifacts/local-detect
+
+这个本地检测会扫描环境变量和用户目录下常见配置文件。报告会展示实际 base URL 和模型名；API Key / token 只会显示脱敏值和 8 位本地指纹，不会把原文写进报告。报告默认写入 `artifacts/`，该目录已被 `.gitignore` 忽略。
+
+summary 里还会判断 Codex 和 Claude Code 当前更像走哪条路：`official_account_login_likely`、`official_api_key`、`official_api_key_default_endpoint_likely`、`official_cloud_api`、`third_party_api`、`local_switcher_or_proxy` 或 `unknown`。如果检测到 base URL 指向 localhost/loopback，relayprobe 会在不发送 API Key 的情况下探测这个本地地址，并输出 `local_switcher_status`。
+
+如果想直接拿检测到的第一个 OpenAI-compatible 环境变量目标跑一轮验证：
+
+    $env:PYTHONPATH="src"
+    python -m relayprobe detect-local --run-first --out artifacts/local-detect
+
+`--run-first` 只会把 relayprobe 的合成测试提示词发到当前配置的 API；不会上传本地检测报告，也不会自动使用从配置文件里解析到的密钥进行联网请求。
+
+如果你连 localhost 探测都不想做，可以加 `--no-probe-local`。
+
 针对真实中转 API 运行时，请只使用合成测试目标，不要放真实业务提示词、客户数据、生产密钥或隐私内容：
 
     $env:PYTHONPATH="src"
@@ -78,6 +96,8 @@ relayprobe 的设计思路就是：不评价动机，只检测可观察行为。
     cases/               人类可读的测试套件说明
     .github/workflows/  GitHub Actions
 
+本地检测策略和支持的配置来源见 [docs/local-detection.zh-CN.md](docs/local-detection.zh-CN.md)。
+
 ## 致谢与参考项目
 
 relayprobe 参考了很多公开项目暴露出的网关能力、检测方向和工程事实。它不是这些项目的分支，也不代表这些项目存在恶意行为。相反，正因为这些项目公开、透明，我们才能更准确地理解 LLM 中转和网关系统的真实能力边界。
@@ -92,6 +112,9 @@ relayprobe 参考了很多公开项目暴露出的网关能力、检测方向和
 - [@Calcium-Ion/new-api](https://github.com/Calcium-Ion/new-api)
 - [@songquanpeng/one-api](https://github.com/songquanpeng/one-api)
 - [@Forlives/relay-api-hub](https://github.com/Forlives/relay-api-hub)
+- [@musistudio/claude-code-router](https://github.com/musistudio/claude-code-router)
+- [@farion1231/cc-switch](https://github.com/farion1231/cc-switch)
+- [@huangdijia/ccswitch](https://github.com/huangdijia/ccswitch)
 - [@Helicone/helicone](https://github.com/Helicone/helicone)
 - [@maximhq/bifrost](https://github.com/maximhq/bifrost)
 - [@ax128/AegisGate](https://github.com/ax128/AegisGate)
@@ -106,4 +129,3 @@ relayprobe 参考了很多公开项目暴露出的网关能力、检测方向和
 - 不要把模型自称当成强证据。
 - 不要在没有官方 baseline 的情况下断言真实模型身份。
 - 不要把 guardrail/脱敏行为直接等同于恶意，它也可能是合法安全策略。
-

@@ -23,23 +23,23 @@
 
 `--run-first` 只会使用环境变量里检测到的 OpenAI-compatible 目标。它不会拿配置文件里解析出的密钥去自动联网。
 
-## 显式真实 API 测试模式
+## 一键跑通的真实 Key 行为
 
-默认情况下，`detect-local` 和 `quickstart` 只发现本机配置，不会拿配置文件里的 Key 自动请求真实 API。
+默认情况下，`detect-local` 只发现本机配置，不会拿配置文件里的 Key 自动请求真实 API。
 
-如果机主明确授权使用当前本机配置里的 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针，可以使用：
+一键跑通 `quickstart` 不同：它会尝试使用机主当前本机检测到的真实 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针。这会产生真实 API 调用记录，并可能产生费用。Key 只在本机当前进程内用于 Authorization；relayprobe 不会明文打印 Key，不会把原始 Key 写进报告，也不会上传。
+
+如果想让一键跑通只跑本地自检、mock 和配置发现，不使用真实 Key：
+
+    relayprobe quickstart --no-run-detected-live --out artifacts/quickstart-offline
+
+PowerShell：
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -NoRunDetectedLive
+
+如果是 `detect-local`，真实测试仍然需要显式加参数：
 
     relayprobe detect-local --run-detected-live --out artifacts/local-detect-live
-
-或：
-
-    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
-
-PowerShell 一键脚本也支持：
-
-    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
-
-启用后，relayprobe 会读取检测到的本机 Key，并发送合成测试请求。这可能产生 API 调用记录或费用。Key 只在本进程内存中用于 Authorization，不会明文打印、不会写入报告、不会上传。
 
 关闭 localhost 探测，只做配置发现：
 

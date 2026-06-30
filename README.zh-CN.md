@@ -4,6 +4,8 @@
 
 relayprobe 是一个面向 OpenAI 兼容 API 中转、聚合网关、三方代理服务的证据型审计工具。
 
+重要说明：一键跑通会在本机检测到可用 OpenAI-compatible API Key/base URL/model 时，使用机主当前真实配置跑一次本地合成探针。这可能产生真实 API 调用记录和费用。原始 Key 不会明文打印、不会写进报告、不会上传。
+
 它的目标不是简单问模型“你是谁”，而是从请求、响应、参数、流式协议、缓存、计费和行为指纹等角度收集证据，判断一个中转 API 是否存在可观察的改写、降级、过滤或伪装迹象。
 
 ## 它要检测什么
@@ -50,7 +52,7 @@ PowerShell / Windows：
 
 ### 一键跑通（最推荐新手先用）
 
-如果只是想确认项目能不能跑、输出长什么样，直接执行根目录脚本：
+如果想完整跑一遍本机检测流程、直接看到输出长什么样，执行根目录脚本：
 
 Windows PowerShell：
 
@@ -68,19 +70,19 @@ macOS / Linux：
 
     relayprobe quickstart --out artifacts/quickstart
 
-它会自动完成：项目自检、正常 mock、篡改 mock、本地 Codex / Claude Code / CCswitch 路由检测，并把报告统一写到 `artifacts/quickstart`。
+一键跑通现在默认会在项目自检、正常 mock、篡改 mock、本地 Codex / Claude Code / CCswitch 路由检测之后，尝试使用机主当前本机检测到的真实 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针。
 
-如需使用本机当前真实配置的 OpenAI-compatible API Key/base URL/model 跑一次真实合成探针，需要显式加参数：
+这会产生真实 API 调用记录，并可能产生费用。Key 只在本机当前进程内用于 Authorization 请求头；relayprobe 不会明文打印 Key，不会把原始 Key 写进报告，也不会上传。生成的报告只保存在本地 `artifacts/` 目录，该目录默认不会提交到 Git。
+
+如果只想离线跑项目自检、mock 和本地配置检测，不使用真实 Key，可以关闭真实探针：
 
 PowerShell：
 
-    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -NoRunDetectedLive
 
 已安装 CLI 时：
 
-    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
-
-注意：`--run-detected-live` 会读取本机检测到的 Key 并发送合成测试请求，可能产生 API 调用记录或费用。Key 只在本进程内存中用于 Authorization，不会明文打印、不会写进报告、不会上传。
+    relayprobe quickstart --no-run-detected-live --out artifacts/quickstart-offline
 
 ### 2. 先跑项目自检
 
@@ -88,7 +90,7 @@ PowerShell：
 
     relayprobe self-test --out artifacts/self-test
 
-它会逐条显示 13 个测试项，每条都有测试内容和状态，例如 `PASS / 通过`。这一步用来确认你本地项目本身是正常的。
+它会逐条显示 15 个测试项，每条都有测试内容和状态，例如 `PASS / 通过`。这一步用来确认你本地项目本身是正常的。
 
 ### 3. 跑本地 mock，先理解正常和异常输出
 

@@ -1,5 +1,6 @@
 param(
-  [switch]$RunDetectedLive
+  [switch]$RunDetectedLive,
+  [switch]$NoRunDetectedLive
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,8 +9,8 @@ Set-Location $Root
 $env:PYTHONPATH = Join-Path $Root "src"
 $Out = Join-Path $Root "artifacts\quickstart"
 $Extra = @()
-if ($RunDetectedLive) {
-  $Extra += "--run-detected-live"
+if ($NoRunDetectedLive) {
+  $Extra += "--no-run-detected-live"
 }
 Write-Host "relayprobe quickstart"
 Write-Host "Project root: $Root"

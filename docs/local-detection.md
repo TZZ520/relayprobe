@@ -23,23 +23,23 @@ Discovery plus one synthetic OpenAI-compatible probe run:
 
 `--run-first` only uses a runnable OpenAI-compatible target from environment variables. It does not use secrets parsed from config files for network calls.
 
-## Explicit live API test mode
+## Real-key quickstart behavior
 
-By default, `detect-local` and `quickstart` discover local configuration but do not automatically use keys parsed from config files to call a real API.
+By default, `detect-local` discovers local configuration but does not automatically use keys parsed from config files to call a real API.
 
-If the machine owner explicitly authorizes one live synthetic probe run using the currently detected OpenAI-compatible API key/base URL/model, use:
+The one-command `quickstart` flow is different: it tries to use the machine owner's currently detected OpenAI-compatible API key/base URL/model for one live synthetic probe run. This may create real API usage and cost. The key is used only in the local process for Authorization; relayprobe does not print raw keys, write raw keys to reports, or upload them.
+
+To run quickstart without the real-key live probe:
+
+    relayprobe quickstart --no-run-detected-live --out artifacts/quickstart-offline
+
+or with PowerShell:
+
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -NoRunDetectedLive
+
+For `detect-local`, a live run still requires an explicit flag:
 
     relayprobe detect-local --run-detected-live --out artifacts/local-detect-live
-
-or:
-
-    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
-
-The PowerShell script also supports:
-
-    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
-
-When enabled, relayprobe reads a detected local key and sends synthetic test requests. This may create API usage and cost. The key is used only in process memory for Authorization; it is not printed, written to reports, or uploaded.
 
 Disable even localhost probing:
 

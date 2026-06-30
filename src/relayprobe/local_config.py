@@ -610,7 +610,7 @@ def combine_file_targets_for_live_run(targets: list[LocalTarget]) -> list[LocalT
                     base_url=base,
                     model=model,
                     notes=[
-                        "explicit opt-in live run target assembled from local config files",
+                        "live probe target assembled from local config files",
                         "raw key is held in memory only and is not written to reports",
                     ],
                 )
@@ -763,7 +763,7 @@ def targets_from_file_raw(path: Path, values: list[dict[str, str]]) -> list[Loca
             base_url=base_urls[0]["value"] if base_urls else None,
             model=models[0]["value"] if models else None,
             notes=[
-                "raw secret available only for explicit opt-in live run",
+                "raw secret available only for live probe run",
                 "raw key is held in memory only and is not written to reports",
             ],
         )
@@ -832,7 +832,7 @@ def targets_from_file(path: Path, extracted: list[LocalValue]) -> list[LocalTarg
             api_key_name=secrets[0].name if secrets else None,
             base_url=base_urls[0].value_redacted if base_urls else None,
             model=models[0].value_redacted if models else None,
-            notes=["file secrets are redacted and not used for automatic network runs"],
+            notes=["file secrets are redacted in discovery reports"],
         )
     ]
 

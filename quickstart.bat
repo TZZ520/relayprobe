@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 set "PYTHONPATH=%~dp0src"
 set "EXTRA="
-if "%~1"=="--run-detected-live" set "EXTRA=--run-detected-live"
+if "%~1"=="--no-run-detected-live" set "EXTRA=--no-run-detected-live"
 echo relayprobe quickstart
 echo Project root: %cd%
 echo Output: %cd%\artifacts\quickstart

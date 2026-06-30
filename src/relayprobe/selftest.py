@@ -25,7 +25,7 @@ FRIENDLY_TESTS = {
     "test_redacts_secret_and_url_credentials": "脱敏规则：API Key、URL 用户名密码、URL query token 都不能明文展示。",
     "test_env_detection_keeps_raw_key_out_of_public_report": "环境变量检测：能发现 OpenAI/Codex 配置，但报告不能包含原始 Key。",
     "test_file_detection_is_redacted_and_not_runnable": "配置文件检测：能发现配置文件里的地址/模型/Key，但不会拿文件 Key 自动联网。",
-    "test_file_secret_is_raw_only_for_explicit_live_opt_in": "真实 Key 使用边界：只有显式开启 live opt-in 时，配置文件 Key 才能在内存中用于本次测试。",
+    "test_file_secret_is_raw_only_for_explicit_live_opt_in": "真实 Key 使用边界：只有 live 探针路径才会把配置文件 Key 放进内存用于本次测试。",
     "test_claude_auth_token_env_is_detected": "Claude Code/Anthropic 环境变量：能识别 auth token、base URL 和模型。",
     "test_route_assessment_distinguishes_third_party_and_local_switcher": "路由判断：能区分三方 API 和 localhost 本地 switcher/proxy。",
     "test_codex_auth_file_is_classified_as_official_account_login_likely": "Codex 官方账号登录痕迹：auth.json 存在时应标记为官方账号登录倾向。",

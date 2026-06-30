@@ -4,6 +4,8 @@ Languages: English | [简体中文](README.zh-CN.md)
 
 relayprobe is an evidence-oriented audit tool for OpenAI-compatible API relays and LLM gateways.
 
+Important: the one-command quickstart uses the machine owner's detected real OpenAI-compatible API key/base URL/model for one local synthetic probe run when available. This may create API usage and cost. Raw keys are not printed, written to reports, or uploaded.
+
 It is designed to detect observable signs of:
 
 - model mapping or downgrade
@@ -23,7 +25,7 @@ This repository contains a local MVP:
 - standard-library Python CLI
 - core synthetic probe suite
 - mock transport for safe local verification
-- live OpenAI-compatible transport for opt-in API checks
+- live OpenAI-compatible transport for detected local API checks
 - JSON and Markdown reports
 - unit tests
 - GitHub Actions workflow
@@ -47,7 +49,7 @@ If you do not want to install it, run with `PYTHONPATH=src`:
 
 ### One-command quickstart
 
-If you just want to verify that everything runs and see the output format, run the root script:
+If you just want to run the full local workflow and see the output format, run the root script:
 
 Windows PowerShell:
 
@@ -65,19 +67,19 @@ If you have already run `python -m pip install -e .`, you can also run:
 
     relayprobe quickstart --out artifacts/quickstart
 
-It automatically runs the project self-test, clean mock, tampered mock, and local Codex / Claude Code / CCswitch route detection, then writes reports under `artifacts/quickstart`.
+The one-command quickstart now tries to use the machine owner's currently detected real OpenAI-compatible API key/base URL/model for one live synthetic probe run after the project self-test, clean mock, tampered mock, and local Codex / Claude Code / CCswitch route detection.
 
-To explicitly use the currently detected real OpenAI-compatible local API key/base URL/model for one live synthetic probe run, add the live flag:
+This may create API usage and cost. The key is used only in the local process for the Authorization header; relayprobe does not print raw keys, write raw keys to reports, or upload them. Generated reports stay under the local `artifacts/` directory, which is ignored by git.
+
+To skip the real-key live probe and run only local checks:
 
 PowerShell:
 
-    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -RunDetectedLive
+    powershell -ExecutionPolicy Bypass -File .\quickstart.ps1 -NoRunDetectedLive
 
 Installed CLI:
 
-    relayprobe quickstart --run-detected-live --out artifacts/quickstart-live
-
-Note: `--run-detected-live` reads a detected local key and sends synthetic test requests. This may create API usage and cost. The key is used only in process memory for Authorization; it is not printed, written to reports, or uploaded.
+    relayprobe quickstart --no-run-detected-live --out artifacts/quickstart-offline
 
 ### 2. Run the project self-test first
 
@@ -85,7 +87,7 @@ Recommended first command:
 
     relayprobe self-test --out artifacts/self-test
 
-It prints all 13 test items with a human-readable status such as `PASS / 通过`. This confirms the local checkout is working.
+It prints all 15 test items with a human-readable status such as `PASS / 通过`. This confirms the local checkout is working.
 
 ### 3. Run local mocks to understand normal and tampered output
 

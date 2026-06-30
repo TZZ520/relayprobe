@@ -18,6 +18,16 @@ It is designed to detect observable signs of:
 
 The tool does not claim to cryptographically prove that a relay is a direct transparent forwarder. A black-box client cannot prove that without upstream logs, provider request IDs, billing records, or provider-signed attestations. relayprobe reports evidence levels instead.
 
+## Confidence and official API baselines
+
+The strongest workflow is to run the same synthetic probe suite against both an official API baseline and the relay under test, then compare parameter handling, streaming protocol, JSON formatting, usage fields, model metadata, and error shapes.
+
+- High confidence: an official API baseline exists, repeated runs are stable, and multiple independent probes point to the same class of anomaly.
+- Medium confidence: no official baseline is available, but protocol, parameter, nonce, usage, or response-rewriting anomalies are directly observable. Treat this as risk-screening evidence and a prompt for follow-up tests.
+- Low confidence: the conclusion depends on a single run, model self-identification, natural-language answers, or the returned `model` field alone.
+
+Without an official API baseline, relayprobe results are still useful, but they should be read as black-box observable evidence rather than final proof or a public accusation. For serious conclusions, run an official API, self-hosted direct model, or otherwise trusted upstream baseline.
+
 ## Current status
 
 This repository contains a local MVP:
